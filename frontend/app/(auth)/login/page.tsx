@@ -12,6 +12,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { loginAction } from "@/app/actions/auth";
 
 // --- バリデーション ---
 
@@ -36,9 +37,10 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {}
   );
+  const [serverError, setServerError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     const emailError = validateEmail(email);
@@ -50,18 +52,28 @@ export default function LoginPage() {
     }
 
     setErrors({});
+    setServerError(null);
     setLoading(true);
 
-    // TODO: Supabase Auth のログイン処理を実装する
-    // const { error } = await supabase.auth.signInWithPassword({ email, password });
-    // ログイン成功時: router.push("/dashboard");
-    // ログイン失敗時: エラーメッセージを表示
+    try {
+      const formData = new FormData();
+      formData.set("email", email);
+      formData.set("password", password);
 
-    // 仮の遷移（Supabase Auth 実装後に削除）
-    setTimeout(() => {
-      setLoading(false);
+      const result = await loginAction(formData);
+
+      if (result.error) {
+        setServerError(result.error);
+        setLoading(false);
+        return;
+      }
+
       router.push("/dashboard");
-    }, 1000);
+      router.refresh();
+    } catch {
+      setServerError("ログイン中にエラーが発生しました");
+      setLoading(false);
+    }
   }
 
   return (
@@ -75,6 +87,11 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit}>
         <Stack gap="md" mt="lg">
+          {serverError && (
+            <Text size="sm" c="red" ta="center">
+              {serverError}
+            </Text>
+          )}
           <TextInput
             label="メールアドレス"
             placeholder="mail@example.com"

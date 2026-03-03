@@ -11,6 +11,7 @@ import {
   UnstyledButton,
   Group,
 } from "@mantine/core";
+import { logoutAction } from "@/app/actions/auth";
 
 // --- Navigation item types ---
 
@@ -90,7 +91,7 @@ export default function AppLayout({
               label="ログアウト"
               leftSection={<span>🚪</span>}
               onClick={() => {
-                // TODO: Supabase Auth のログアウト処理を実装する
+                logoutAction();
               }}
               variant="subtle"
               color="gray"

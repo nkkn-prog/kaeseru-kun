@@ -11,33 +11,12 @@ import {
   Paper,
   Progress,
 } from "@mantine/core";
-import type { DashboardData } from "@/types/api";
 import type { Recommendation } from "@/types/database";
-
-// --- Mock data ---
-// TODO: Server Component で Prisma から直接データを取得する
-
-const mockData: DashboardData = {
-  yearMonth: "2026年3月",
-  totalDebt: 1250000,
-  monthlyIncome: 280000,
-  monthlyExpense: 210000,
-  debtRatio: 32,
-  recommendations: [
-    {
-      category: "subscription",
-      description: "サブスク3件を解約すると月¥3,200節約可能",
-      saving_amount: 3200,
-      priority: "high",
-    },
-    {
-      category: "food",
-      description: "外食を週1回減らすと月¥4,000節約可能",
-      saving_amount: 4000,
-      priority: "medium",
-    },
-  ],
-};
+import { requireAuth } from "@/lib/auth";
+import { getTotalDebtBalance } from "@/lib/api/debts";
+import { getTransactions } from "@/lib/api/transactions";
+import { getIncomes } from "@/lib/api/incomes";
+import { getAnalysis } from "@/lib/api/analyses";
 
 // --- Helper ---
 
@@ -68,16 +47,47 @@ function getPriorityColor(priority: Recommendation["priority"]): string {
   }
 }
 
+/**
+ * 現在の年月を "YYYY-MM" 形式で取得する
+ */
+function getCurrentYearMonth(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * 現在の年月を表示用ラベルに変換する（例: "2026年3月"）
+ */
+function formatYearMonthLabel(yearMonth: string): string {
+  const [yearStr, monthStr] = yearMonth.split("-");
+  return `${yearStr}年${Number(monthStr)}月`;
+}
+
 // --- Component ---
 
-export default function DashboardPage() {
-  // TODO: API呼び出しに差し替える
-  const data = mockData;
+export default async function DashboardPage() {
+  const user = await requireAuth();
+  const currentYearMonth = getCurrentYearMonth();
+
+  const [totalDebt, transactions, incomes, analysis] = await Promise.all([
+    getTotalDebtBalance(user.id),
+    getTransactions(user.id, currentYearMonth),
+    getIncomes(user.id, currentYearMonth),
+    getAnalysis(user.id, currentYearMonth),
+  ]);
+
+  const monthlyExpense = transactions.reduce((sum, t) => sum + t.amount, 0);
+  const monthlyIncome = incomes.reduce((sum, i) => sum + i.amount, 0);
+  const debtRatio = monthlyIncome > 0
+    ? Math.round((monthlyExpense / monthlyIncome) * 100)
+    : 0;
+  const recommendations = analysis?.recommendations ?? null;
+  const yearMonthLabel = formatYearMonthLabel(currentYearMonth);
 
   return (
     <Stack gap="md">
       {/* Month display */}
-      <Title order={3}>{data.yearMonth}</Title>
+      <Title order={3}>{yearMonthLabel}</Title>
 
       {/* Debt total card */}
       <Card shadow="sm" padding="lg" radius="md" withBorder>
@@ -85,7 +95,7 @@ export default function DashboardPage() {
           借金残高合計
         </Text>
         <Title order={2} className="mt-1">
-          {formatYen(data.totalDebt)}
+          {formatYen(totalDebt)}
         </Title>
       </Card>
 
@@ -96,7 +106,7 @@ export default function DashboardPage() {
             今月の収入
           </Text>
           <Text fw={700} size="xl" c="teal" className="mt-1">
-            {formatYen(data.monthlyIncome)}
+            {formatYen(monthlyIncome)}
           </Text>
         </Card>
         <Card shadow="sm" padding="md" radius="md" withBorder>
@@ -104,7 +114,7 @@ export default function DashboardPage() {
             今月の支出
           </Text>
           <Text fw={700} size="xl" c="red" className="mt-1">
-            {formatYen(data.monthlyExpense)}
+            {formatYen(monthlyExpense)}
           </Text>
         </Card>
       </SimpleGrid>
@@ -117,16 +127,16 @@ export default function DashboardPage() {
           </Text>
           <Group gap="xs">
             <Text fw={700} size="lg">
-              {data.debtRatio}%
+              {debtRatio}%
             </Text>
-            <Badge color={getDebtRatioColor(data.debtRatio)} variant="light">
-              {getDebtRatioLabel(data.debtRatio)}
+            <Badge color={getDebtRatioColor(debtRatio)} variant="light">
+              {getDebtRatioLabel(debtRatio)}
             </Badge>
           </Group>
         </Group>
         <Progress
-          value={data.debtRatio}
-          color={getDebtRatioColor(data.debtRatio)}
+          value={debtRatio}
+          color={getDebtRatioColor(debtRatio)}
           size="lg"
           radius="md"
         />
@@ -135,38 +145,46 @@ export default function DashboardPage() {
       {/* AI recommendations */}
       <Stack gap="xs">
         <Title order={5}>AI からの提案</Title>
-        {(data.recommendations ?? []).map((rec) => (
-          <Card key={rec.category} shadow="sm" padding="md" radius="md" withBorder>
-            <Group justify="space-between" align="flex-start">
-              <Stack gap={4} className="flex-1">
-                <Group gap="xs">
-                  <Badge
-                    color={getPriorityColor(rec.priority)}
-                    variant="filled"
-                    size="sm"
-                  >
-                    {rec.priority === "high"
-                      ? "高"
-                      : rec.priority === "medium"
-                        ? "中"
-                        : "低"}
-                  </Badge>
-                  <Text size="sm" fw={500}>
-                    {rec.description}
-                  </Text>
-                </Group>
-              </Stack>
-              {/* TODO: 提案詳細ページへの遷移を実装する */}
-              <Button variant="subtle" size="compact-sm">
-                詳細
-              </Button>
-            </Group>
+        {(recommendations ?? []).length === 0 ? (
+          <Card shadow="sm" padding="md" radius="md" withBorder>
+            <Text size="sm" c="dimmed" ta="center">
+              まだ提案がありません。月次分析を実行してください。
+            </Text>
           </Card>
-        ))}
+        ) : (
+          (recommendations ?? []).map((rec) => (
+            <Card key={rec.category} shadow="sm" padding="md" radius="md" withBorder>
+              <Group justify="space-between" align="flex-start">
+                <Stack gap={4} className="flex-1">
+                  <Group gap="xs">
+                    <Badge
+                      color={getPriorityColor(rec.priority)}
+                      variant="filled"
+                      size="sm"
+                    >
+                      {rec.priority === "high"
+                        ? "高"
+                        : rec.priority === "medium"
+                          ? "中"
+                          : "低"}
+                    </Badge>
+                    <Text size="sm" fw={500}>
+                      {rec.description}
+                    </Text>
+                  </Group>
+                </Stack>
+                {/* TODO: 提案詳細ページへの遷移を実装する */}
+                <Button variant="subtle" size="compact-sm">
+                  詳細
+                </Button>
+              </Group>
+            </Card>
+          ))
+        )}
       </Stack>
 
       {/* Link to monthly analysis */}
-      <Anchor href="/analysis/current" underline="never">
+      <Anchor href={`/analysis/${currentYearMonth}`} underline="never">
         <Button variant="light" fullWidth size="md">
           月次分析レポートを見る
         </Button>
