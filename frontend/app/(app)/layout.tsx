@@ -26,6 +26,8 @@ const spNavItems: NavItem[] = [
   { label: "ホーム", href: "/dashboard", icon: "🏠" },
   { label: "借金", href: "/debts", icon: "💳" },
   { label: "登録", href: "/upload", icon: "📤" },
+  { label: "支出", href: "/transactions", icon: "💸" },
+  { label: "収入", href: "/incomes", icon: "💴" },
   { label: "分析", href: "/analysis/current", icon: "📊" },
 ];
 
