@@ -11,22 +11,11 @@ import {
   Paper,
   Progress,
 } from "@mantine/core";
+import type { DashboardData } from "@/types/api";
 import type { Recommendation } from "@/types/database";
 
-// --- Mock data types ---
-
-type DashboardData = {
-  yearMonth: string;
-  totalDebt: number;
-  monthlyIncome: number;
-  monthlyExpense: number;
-  debtRatio: number;
-  debtRatioLabel: string;
-  recommendations: Recommendation[];
-};
-
 // --- Mock data ---
-// TODO: API呼び出しに差し替える
+// TODO: Server Component で Prisma から直接データを取得する
 
 const mockData: DashboardData = {
   yearMonth: "2026年3月",
@@ -34,7 +23,6 @@ const mockData: DashboardData = {
   monthlyIncome: 280000,
   monthlyExpense: 210000,
   debtRatio: 32,
-  debtRatioLabel: "高め",
   recommendations: [
     {
       category: "subscription",
@@ -61,6 +49,12 @@ function getDebtRatioColor(ratio: number): string {
   if (ratio >= 30) return "orange";
   if (ratio >= 20) return "yellow";
   return "teal";
+}
+
+function getDebtRatioLabel(ratio: number): string {
+  if (ratio >= 30) return "高め";
+  if (ratio >= 20) return "やや高め";
+  return "良好";
 }
 
 function getPriorityColor(priority: Recommendation["priority"]): string {
@@ -126,7 +120,7 @@ export default function DashboardPage() {
               {data.debtRatio}%
             </Text>
             <Badge color={getDebtRatioColor(data.debtRatio)} variant="light">
-              {data.debtRatioLabel}
+              {getDebtRatioLabel(data.debtRatio)}
             </Badge>
           </Group>
         </Group>
@@ -141,7 +135,7 @@ export default function DashboardPage() {
       {/* AI recommendations */}
       <Stack gap="xs">
         <Title order={5}>AI からの提案</Title>
-        {data.recommendations.map((rec) => (
+        {(data.recommendations ?? []).map((rec) => (
           <Card key={rec.category} shadow="sm" padding="md" radius="md" withBorder>
             <Group justify="space-between" align="flex-start">
               <Stack gap={4} className="flex-1">
