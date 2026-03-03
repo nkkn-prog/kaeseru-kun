@@ -17,9 +17,10 @@ kaeseru-kun/
 
 | レイヤー | 技術 |
 |---------|------|
-| フロントエンド | Next.js 16 / React 19 / TypeScript / Tailwind CSS v4 |
+| フロントエンド | Next.js 16 / React 19 / TypeScript / Tailwind CSS v4 / Mantine UI |
+| ORM | Prisma v5（Supabase PostgreSQL に接続） |
 | バックエンド | Python / FastAPI |
-| BaaS | Supabase（Auth・PostgreSQL・Storage） |
+| BaaS | Supabase（Auth・Storage のみ。DB アクセスは Prisma 経由） |
 | AI | Gemini Vision API（画像解析）/ Claude Sonnet 4.6（分析・提案） |
 | インフラ | Vercel（frontend）/ Railway（backend） |
 | パッケージマネージャー | pnpm（Voltaで管理） |
@@ -98,9 +99,9 @@ config: 変更内容       # 設定変更
 
 ## 実装の進め方
 
-1. **frontend** を先に完成させる。CRUDはSupabaseに直接アクセスする。
-2. **backend** はGemini APIが絡む処理のみ担当する（画像解析・月次分析生成・返済シミュレーション）。
-3. backendが完成したら、frontendのモック値をAPI呼び出しに差し替える。
+1. **frontend** を先に完成させる。DB アクセスは Prisma 経由、認証・Storage は Supabase を使う。
+2. **backend** は AI 処理のみ担当する（Gemini Vision によるスクショ解析・Claude Sonnet 4.6 による月次分析生成・返済シミュレーション）。
+3. backend が完成したら、frontend のモック値を API 呼び出しに差し替える。
 
 ## 設計ドキュメント
 

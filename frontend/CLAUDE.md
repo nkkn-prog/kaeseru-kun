@@ -1,7 +1,7 @@
 # frontend（カエセルくん）
 
-Next.js 16 / React 19 / TypeScript / Tailwind CSS v4 で構築するフロントエンド。
-Supabase に直接アクセスして CRUD を行い、AI 処理のみ FastAPI（backend）に委譲する。
+Next.js 16 / React 19 / TypeScript / Tailwind CSS v4 / Mantine UI で構築するフロントエンド。
+DB アクセスは Prisma 経由で行い、AI 処理のみ FastAPI（backend）に委譲する。
 
 ## ディレクトリ構成（予定）
 
@@ -25,9 +25,12 @@ frontend/
     ui/               # 汎用UIコンポーネント（Button, Input, Card など）
     features/         # 機能単位のコンポーネント
   lib/
-    supabase/         # Supabase クライアント・型定義
+    supabase/         # Supabase Auth・Storage クライアント
+    prisma/           # Prisma クライアント（DB アクセス）
     api/              # FastAPI クライアント（AI処理用）
     utils/            # 共通ユーティリティ
+  prisma/
+    schema.prisma     # スキーマ定義
   types/              # TypeScript 型定義
 ```
 
@@ -47,12 +50,67 @@ pnpm lint       # ESLint 実行
 | UIライブラリ | React | 19.2.3 |
 | 言語 | TypeScript | ^5 |
 | スタイリング | Tailwind CSS v4 | ^4 |
-| BaaS | Supabase（Auth・DB・Storage） | - |
+| UIコンポーネント | Mantine UI | ^7 |
+| ORM | Prisma | ^5 |
+| BaaS | Supabase（Auth・Storage） | - |
 | パッケージマネージャー | pnpm（Voltaで管理） | - |
+
+## Prisma（DB アクセス）
+
+DB アクセスはすべて Prisma 経由で行う。Supabase の PostgreSQL に直接接続する。
+
+### 接続 URL は2つ必要
+
+Supabase は PgBouncer（接続プール）を使っているため、Prisma では URL を2つ設定する必要がある。
+
+```env
+# クエリ用（プール経由）※ pgbouncer=true と connection_limit=1 が必須
+DATABASE_URL=postgresql://postgres:[pw]@aws-0-xxx.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+
+# マイグレーション用（直接接続）
+DIRECT_URL=postgresql://postgres:[pw]@db.xxx.supabase.co:5432/postgres
+```
+
+`schema.prisma` にも両方を記述すること：
+
+```prisma
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+```
+
+`DATABASE_URL` のみで `prisma migrate` を実行するとエラーになる。必ず `DIRECT_URL` を設定してから実行すること。
+
+### Prisma コマンド
+
+```bash
+pnpm prisma generate       # クライアント生成
+pnpm prisma db push        # スキーマをDBに反映（開発時）
+pnpm prisma migrate dev    # マイグレーション作成・適用（本番運用時）
+pnpm prisma studio         # GUI でデータ確認
+```
+
+Prisma クライアントは `lib/prisma/client.ts` に集約する。
+スキーマは `prisma/schema.prisma` で管理する。`docs/database-schema.md` の定義と必ず一致させること。
+
+### RLS は Prisma 経由では自動適用されない
+
+Prisma は `service_role_key` で接続するため RLS が**完全にバイパスされる**。
+他ユーザーのデータを誤って返さないよう、クエリには必ず `where: { userId }` を明示すること。
+
+```ts
+// ❌ 危険：全ユーザーのデータが取得される
+const debts = await prisma.debt.findMany()
+
+// ✅ 正しい：ログインユーザーのデータのみ取得
+const debts = await prisma.debt.findMany({ where: { userId } })
+```
 
 ## Supabase 接続
 
-環境変数（`.env.local`）に以下を設定する：
+Supabase は **Auth と Storage のみ**に使用する。DB アクセスは Prisma を使うこと。
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
@@ -60,7 +118,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 ```
 
 Supabase クライアントは `lib/supabase/client.ts` に集約する。
-RLS（Row Level Security）が全テーブルに設定されているため、`user_id = auth.uid()` 以外のデータは取得できない。
+
+### Storage バケットは必ず private に設定する
+
+スクリーンショットには金融情報が含まれるため、**public バケットは絶対に使わない**。
+ファイルへのアクセスは署名付き URL（Signed URL）を発行して行う。
+
+### Free tier はプロジェクトが1週間放置で一時停止する
+
+開発中に DB に繋がらなくなった場合、Supabase ダッシュボードでプロジェクトが停止していないか確認すること。手動で再開できる。
 
 ## FastAPI（backend）との通信
 
