@@ -43,7 +43,8 @@ model Debt {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @default(now()) @map("updated_at") @db.Timestamptz
 
-  profile Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile     Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  screenshots Screenshot[]
 
   @@map("debts")
 }
@@ -52,13 +53,14 @@ model Debt {
 model Screenshot {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId      String    @map("user_id") @db.Uuid
+  debtId      String?   @map("debt_id") @db.Uuid
   storagePath String    @map("storage_path")
-  sourceType  String    @default("other") @map("source_type")
   status      String    @default("pending")
   processedAt DateTime? @map("processed_at") @db.Timestamptz
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   profile      Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debt         Debt?         @relation(fields: [debtId], references: [id], onDelete: SetNull)
   transactions Transaction[]
   incomes      Income[]
 

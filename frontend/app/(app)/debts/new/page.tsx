@@ -34,14 +34,11 @@ const DEBT_TYPE_OPTIONS: { value: DebtType; label: string }[] = [
 
 type FormErrors = {
   name?: string;
-  current_balance?: string;
 };
 
-function validateForm(name: string, currentBalance: number | string): FormErrors {
+function validateForm(name: string): FormErrors {
   const errors: FormErrors = {};
   if (!name.trim()) errors.name = "名称を入力してください";
-  if (currentBalance === "" || Number(currentBalance) <= 0)
-    errors.current_balance = "残高を入力してください";
   return errors;
 }
 
@@ -63,7 +60,7 @@ export default function DebtNewPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const formErrors = validateForm(name, currentBalance);
+    const formErrors = validateForm(name);
     if (Object.keys(formErrors).length > 0) {
       setErrors(formErrors);
       return;
@@ -125,10 +122,8 @@ export default function DebtNewPage() {
               placeholder="例: 500000"
               value={currentBalance}
               onChange={setCurrentBalance}
-              error={errors.current_balance}
               min={0}
               thousandSeparator=","
-              required
             />
 
             <NumberInput

@@ -42,6 +42,7 @@ CREATE TABLE debts (
   lender          TEXT,
   current_balance INTEGER NOT NULL,
   interest_rate   DECIMAL(5, 2),
+  interest_type   TEXT,              -- compound（複利）/ simple（単利）
   monthly_payment INTEGER,
   due_day         INTEGER,
   debt_type       TEXT NOT NULL DEFAULT 'other',  -- card_loan / mortgage / student_loan / credit_card / other
