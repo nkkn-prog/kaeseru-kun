@@ -1,0 +1,41 @@
+# ================================
+# 共通
+# ================================
+.DS_Store
+Thumbs.db
+*.log
+
+# ================================
+# 環境変数（絶対にコミットしない）
+# ================================
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# ================================
+# frontend（Next.js）
+# ================================
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+frontend/.pnpm-store/
+frontend/npm-debug.log*
+frontend/pnpm-debug.log*
+
+# ================================
+# backend（Python / FastAPI）
+# ================================
+backend/.venv/
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/*.egg-info/
+backend/dist/
+backend/build/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
