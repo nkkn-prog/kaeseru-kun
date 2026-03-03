@@ -14,7 +14,9 @@ import {
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import { deleteIncomeAction } from "@/app/actions/incomes";
+import { IncomeFormModal } from "./IncomeFormModal";
 import type { Income, IncomeType } from "@/types/database";
 
 // --- 定数 ---
@@ -65,7 +67,11 @@ export function IncomesPageClient({
   const router = useRouter();
   const monthOptions = generateMonthOptions();
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const [opened, { open, close }] = useDisclosure(false);
+  const [deleteOpened, { open: openDelete, close: closeDelete }] =
+    useDisclosure(false);
+  const [formOpened, { open: openForm, close: closeForm }] =
+    useDisclosure(false);
+  const [editTarget, setEditTarget] = useState<Income | undefined>(undefined);
   const [isPending, startTransition] = useTransition();
 
   const totalIncome = incomes.reduce((sum, i) => sum + i.amount, 0);
@@ -80,26 +86,39 @@ export function IncomesPageClient({
     startTransition(async () => {
       const result = await deleteIncomeAction(deleteTargetId);
       if (result.error) {
-        // TODO: エラー通知UIを実装する
-        throw new Error(result.error);
+        notifications.show({
+          title: "削除エラー",
+          message: result.error,
+          color: "red",
+        });
+        return;
       }
       setDeleteTargetId(null);
-      close();
+      closeDelete();
       router.refresh();
     });
   }
 
   function openDeleteModal(id: string) {
     setDeleteTargetId(id);
-    open();
+    openDelete();
+  }
+
+  function handleOpenNew() {
+    setEditTarget(undefined);
+    openForm();
+  }
+
+  function handleOpenEdit(income: Income) {
+    setEditTarget(income);
+    openForm();
   }
 
   return (
     <Stack gap="md">
       <Group justify="space-between" align="center">
         <Title order={3}>収入一覧</Title>
-        {/* TODO: 手入力画面への遷移を実装する */}
-        <Button size="compact-md" onClick={() => router.push("/upload")}>
+        <Button size="compact-md" onClick={handleOpenNew}>
           + 手入力
         </Button>
       </Group>
@@ -154,8 +173,12 @@ export function IncomesPageClient({
                     {formatYen(income.amount)}
                   </Text>
                   <Group gap={4}>
-                    {/* TODO: 編集画面への遷移を実装する */}
-                    <Button variant="subtle" size="compact-xs" c="dimmed">
+                    <Button
+                      variant="subtle"
+                      size="compact-xs"
+                      c="dimmed"
+                      onClick={() => handleOpenEdit(income)}
+                    >
                       編集
                     </Button>
                     <Button
@@ -174,12 +197,19 @@ export function IncomesPageClient({
         </Stack>
       )}
 
+      {/* 収入登録・編集モーダル */}
+      <IncomeFormModal
+        opened={formOpened}
+        onClose={closeForm}
+        income={editTarget}
+      />
+
       {/* 削除確認モーダル */}
-      <Modal opened={opened} onClose={close} title="収入を削除" centered>
+      <Modal opened={deleteOpened} onClose={closeDelete} title="収入を削除" centered>
         <Stack gap="md">
           <Text size="sm">この収入を削除してもよろしいですか？</Text>
           <Group justify="flex-end" gap="sm">
-            <Button variant="default" onClick={close}>
+            <Button variant="default" onClick={closeDelete}>
               キャンセル
             </Button>
             <Button color="red" onClick={handleDelete} loading={isPending}>
