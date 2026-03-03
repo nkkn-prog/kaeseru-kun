@@ -13,5 +13,6 @@ export default function RootPage() {
   // const { data: { session } } = await supabase.auth.getSession();
   // if (session) redirect("/dashboard");
 
-  redirect("/login");
+  // TODO: 認証復帰後に /login に戻す
+  redirect("/dashboard");
 }

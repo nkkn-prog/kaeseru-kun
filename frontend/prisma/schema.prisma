@@ -35,6 +35,7 @@ model Debt {
   lender         String?
   currentBalance Int      @map("current_balance")
   interestRate   Decimal? @map("interest_rate") @db.Decimal(5, 2)
+  interestType   String?  @map("interest_type")
   monthlyPayment Int?     @map("monthly_payment")
   dueDay         Int?     @map("due_day")
   debtType       String   @default("other") @map("debt_type")

@@ -12,8 +12,8 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { createDebtAction } from "@/app/actions/debts";
-import type { DebtType, InterestType } from "@/types/database";
+import { updateDebtAction } from "@/app/actions/debts";
+import type { Debt, DebtType, InterestType } from "@/types/database";
 
 // --- 定数 ---
 
@@ -45,18 +45,32 @@ function validateForm(name: string, currentBalance: number | string): FormErrors
   return errors;
 }
 
+// --- Props ---
+
+type DebtEditFormClientProps = {
+  debt: Debt;
+};
+
 // --- Component ---
 
-export default function DebtNewPage() {
+export function DebtEditFormClient({ debt }: DebtEditFormClientProps) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [lender, setLender] = useState("");
-  const [currentBalance, setCurrentBalance] = useState<number | string>("");
-  const [interestRate, setInterestRate] = useState<number | string>("");
-  const [interestType, setInterestType] = useState<string>("compound");
-  const [monthlyPayment, setMonthlyPayment] = useState<number | string>("");
-  const [dueDay, setDueDay] = useState<number | string>("");
-  const [debtType, setDebtType] = useState<string>("card_loan");
+  const [name, setName] = useState(debt.name);
+  const [lender, setLender] = useState(debt.lender ?? "");
+  const [currentBalance, setCurrentBalance] = useState<number | string>(
+    debt.current_balance
+  );
+  const [interestRate, setInterestRate] = useState<number | string>(
+    debt.interest_rate ?? ""
+  );
+  const [interestType, setInterestType] = useState<string>(
+    debt.interest_type ?? "compound"
+  );
+  const [monthlyPayment, setMonthlyPayment] = useState<number | string>(
+    debt.monthly_payment ?? ""
+  );
+  const [dueDay, setDueDay] = useState<number | string>(debt.due_day ?? "");
+  const [debtType, setDebtType] = useState<string>(debt.debt_type);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
 
@@ -83,11 +97,11 @@ export default function DebtNewPage() {
       if (dueDay !== "") formData.set("due_day", String(dueDay));
       formData.set("debt_type", debtType);
 
-      await createDebtAction(formData);
+      await updateDebtAction(debt.id, formData);
       router.push("/debts");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "登録に失敗しました";
+        error instanceof Error ? error.message : "更新に失敗しました";
       // TODO: Mantine の notifications で表示する
       alert(message);
     } finally {
@@ -98,7 +112,7 @@ export default function DebtNewPage() {
   return (
     <Stack gap="md">
       <Group justify="space-between" align="center">
-        <Title order={3}>借金を登録</Title>
+        <Title order={3}>借金を編集</Title>
       </Group>
 
       <Paper shadow="sm" p="md" radius="md" withBorder>
@@ -180,7 +194,7 @@ export default function DebtNewPage() {
                 キャンセル
               </Button>
               <Button type="submit" loading={loading}>
-                登録する
+                更新する
               </Button>
             </Group>
           </Stack>
