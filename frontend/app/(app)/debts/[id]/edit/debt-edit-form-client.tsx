@@ -13,9 +13,14 @@ import {
   Title,
 } from "@mantine/core";
 import { updateDebtAction } from "@/app/actions/debts";
-import type { Debt, DebtType } from "@/types/database";
+import type { Debt, DebtType, InterestType } from "@/types/database";
 
 // --- 定数 ---
+
+const INTEREST_TYPE_OPTIONS: { value: InterestType; label: string }[] = [
+  { value: "compound", label: "複利" },
+  { value: "simple", label: "単利" },
+];
 
 const DEBT_TYPE_OPTIONS: { value: DebtType; label: string }[] = [
   { value: "card_loan", label: "カードローン" },
@@ -58,6 +63,9 @@ export function DebtEditFormClient({ debt }: DebtEditFormClientProps) {
   const [interestRate, setInterestRate] = useState<number | string>(
     debt.interest_rate ?? ""
   );
+  const [interestType, setInterestType] = useState<string>(
+    debt.interest_type ?? "compound"
+  );
   const [monthlyPayment, setMonthlyPayment] = useState<number | string>(
     debt.monthly_payment ?? ""
   );
@@ -84,6 +92,7 @@ export function DebtEditFormClient({ debt }: DebtEditFormClientProps) {
       formData.set("lender", lender);
       formData.set("current_balance", String(currentBalance));
       if (interestRate !== "") formData.set("interest_rate", String(interestRate));
+      formData.set("interest_type", interestType);
       if (monthlyPayment !== "") formData.set("monthly_payment", String(monthlyPayment));
       if (dueDay !== "") formData.set("due_day", String(dueDay));
       formData.set("debt_type", debtType);
@@ -144,6 +153,14 @@ export function DebtEditFormClient({ debt }: DebtEditFormClientProps) {
               min={0}
               max={100}
               decimalScale={2}
+            />
+
+            <Select
+              label="金利の種類"
+              data={INTEREST_TYPE_OPTIONS}
+              value={interestType}
+              onChange={(val) => setInterestType(val ?? "compound")}
+              allowDeselect={false}
             />
 
             <NumberInput

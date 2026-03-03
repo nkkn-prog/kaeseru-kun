@@ -13,9 +13,14 @@ import {
   Title,
 } from "@mantine/core";
 import { createDebtAction } from "@/app/actions/debts";
-import type { DebtType } from "@/types/database";
+import type { DebtType, InterestType } from "@/types/database";
 
 // --- 定数 ---
+
+const INTEREST_TYPE_OPTIONS: { value: InterestType; label: string }[] = [
+  { value: "compound", label: "複利" },
+  { value: "simple", label: "単利" },
+];
 
 const DEBT_TYPE_OPTIONS: { value: DebtType; label: string }[] = [
   { value: "card_loan", label: "カードローン" },
@@ -48,6 +53,7 @@ export default function DebtNewPage() {
   const [lender, setLender] = useState("");
   const [currentBalance, setCurrentBalance] = useState<number | string>("");
   const [interestRate, setInterestRate] = useState<number | string>("");
+  const [interestType, setInterestType] = useState<string>("compound");
   const [monthlyPayment, setMonthlyPayment] = useState<number | string>("");
   const [dueDay, setDueDay] = useState<number | string>("");
   const [debtType, setDebtType] = useState<string>("card_loan");
@@ -72,6 +78,7 @@ export default function DebtNewPage() {
       formData.set("lender", lender);
       formData.set("current_balance", String(currentBalance));
       if (interestRate !== "") formData.set("interest_rate", String(interestRate));
+      formData.set("interest_type", interestType);
       if (monthlyPayment !== "") formData.set("monthly_payment", String(monthlyPayment));
       if (dueDay !== "") formData.set("due_day", String(dueDay));
       formData.set("debt_type", debtType);
@@ -132,6 +139,14 @@ export default function DebtNewPage() {
               min={0}
               max={100}
               decimalScale={2}
+            />
+
+            <Select
+              label="金利の種類"
+              data={INTEREST_TYPE_OPTIONS}
+              value={interestType}
+              onChange={(val) => setInterestType(val ?? "compound")}
+              allowDeselect={false}
             />
 
             <NumberInput

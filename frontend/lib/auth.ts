@@ -1,41 +1,39 @@
-import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma/client";
+
+// TODO: テスト完了後に Supabase Auth ベースの認証に戻す
+// import { redirect } from "next/navigation";
+// import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+/**
+ * テスト用の固定ユーザーID
+ * Supabase Auth 導入後に削除する
+ */
+const TEST_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 /**
  * Supabase Auth からログイン中のユーザーを取得する
  *
- * 未ログインの場合は null を返す。
- * Server Component / Server Action から呼ぶこと。
+ * TODO: テスト完了後に Supabase Auth ベースの実装に戻す
  */
 export async function getUser() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    return null;
-  }
-
-  return user;
+  return { id: TEST_USER_ID };
 }
 
 /**
- * ログイン済みユーザーを取得し、未ログインなら /login にリダイレクトする
+ * ログイン済みユーザーを取得する
  *
- * Server Component / Server Action でユーザーを必須とする場面で使う。
- * 戻り値の user は必ず存在する（null の場合はリダイレクトされる）。
+ * TODO: テスト完了後に Supabase Auth ベースの実装に戻す
+ * 本来は未ログインなら /login にリダイレクトする
  */
 export async function requireAuth() {
-  const user = await getUser();
+  // テスト用: profiles テーブルにレコードがなければ自動作成する
+  await prisma.profile.upsert({
+    where: { id: TEST_USER_ID },
+    update: {},
+    create: { id: TEST_USER_ID, name: "テストユーザー" },
+  });
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  return user;
+  return { id: TEST_USER_ID };
 }
 
 /**

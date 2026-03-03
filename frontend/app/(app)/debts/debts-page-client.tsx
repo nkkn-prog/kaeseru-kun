@@ -14,7 +14,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { deleteDebtAction } from "@/app/actions/debts";
-import type { Debt, DebtType } from "@/types/database";
+import type { Debt, DebtType, InterestType } from "@/types/database";
 
 // --- 定数 ---
 
@@ -26,16 +26,57 @@ const DEBT_TYPE_LABELS: Record<DebtType, string> = {
   other: "その他",
 };
 
+const INTEREST_TYPE_LABELS: Record<InterestType, string> = {
+  compound: "複利",
+  simple: "単利",
+};
+
 // --- ヘルパー ---
 
 function formatYen(amount: number): string {
   return `¥${amount.toLocaleString("ja-JP")}`;
 }
 
-/** 完済までの月数を概算で計算（利息考慮なし簡易版） */
-function estimateMonthsToPayoff(balance: number, monthlyPayment: number | null): number | null {
+/**
+ * 完済までの月数を概算で計算する
+ *
+ * - 金利なし: 残高 ÷ 月返済額
+ * - 単利: 元本に対してのみ利息が発生。P / (M - P * r / 12)
+ * - 複利: 毎月の残高に利息が発生。-log(1 - P * r/12 / M) / log(1 + r/12)
+ *
+ * 月返済額が利息以下の場合は返済不能として null を返す。
+ */
+function estimateMonthsToPayoff(
+  balance: number,
+  monthlyPayment: number | null,
+  interestRate: number | null,
+  interestType: InterestType | null,
+): number | null {
   if (!monthlyPayment || monthlyPayment <= 0) return null;
-  return Math.ceil(balance / monthlyPayment);
+  if (balance <= 0) return 0;
+
+  // 金利なし
+  if (!interestRate || interestRate === 0) {
+    return Math.ceil(balance / monthlyPayment);
+  }
+
+  const annualRate = interestRate / 100;
+  const monthlyRate = annualRate / 12;
+
+  if (interestType === "simple") {
+    // 単利: 利息は元本にのみ発生
+    // 総返済額 = P + P * r * n/12 = M * n
+    // n = P / (M - P * r / 12)
+    const denominator = monthlyPayment - balance * monthlyRate;
+    if (denominator <= 0) return null; // 返済不能
+    return Math.ceil(balance / denominator);
+  }
+
+  // 複利（デフォルト）: 残高に対して毎月利息が発生
+  // n = -log(1 - P * monthlyRate / M) / log(1 + monthlyRate)
+  const ratio = balance * monthlyRate / monthlyPayment;
+  if (ratio >= 1) return null; // 返済不能（月返済額が利息以下）
+  return Math.ceil(-Math.log(1 - ratio) / Math.log(1 + monthlyRate));
 }
 
 // --- Props ---
@@ -104,7 +145,9 @@ export function DebtsPageClient({ debts }: DebtsPageClientProps) {
         debts.map((debt) => {
           const months = estimateMonthsToPayoff(
             debt.current_balance,
-            debt.monthly_payment
+            debt.monthly_payment,
+            debt.interest_rate,
+            debt.interest_type,
           );
           return (
             <Card key={debt.id} shadow="sm" padding="md" radius="md" withBorder>
@@ -137,7 +180,7 @@ export function DebtsPageClient({ debts }: DebtsPageClientProps) {
                   {debt.interest_rate !== null && (
                     <Stack gap={0}>
                       <Text size="xs" c="dimmed">
-                        金利
+                        金利{debt.interest_type ? `（${INTEREST_TYPE_LABELS[debt.interest_type]}）` : ""}
                       </Text>
                       <Text fw={600}>{debt.interest_rate}%</Text>
                     </Stack>

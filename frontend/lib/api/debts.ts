@@ -13,6 +13,7 @@ function toDebt(row: Prisma.DebtGetPayload<object>): Debt {
     lender: row.lender,
     current_balance: row.currentBalance,
     interest_rate: row.interestRate ? Number(row.interestRate) : null,
+    interest_type: row.interestType as Debt["interest_type"],
     monthly_payment: row.monthlyPayment,
     due_day: row.dueDay,
     debt_type: row.debtType as Debt["debt_type"],
@@ -73,6 +74,7 @@ export async function createDebt(data: DebtInsert): Promise<Debt> {
       lender: data.lender,
       currentBalance: data.current_balance,
       interestRate: data.interest_rate,
+      interestType: data.interest_type,
       monthlyPayment: data.monthly_payment,
       dueDay: data.due_day,
       debtType: data.debt_type,
@@ -111,6 +113,9 @@ export async function updateDebt(
       }),
       ...(data.interest_rate !== undefined && {
         interestRate: data.interest_rate,
+      }),
+      ...(data.interest_type !== undefined && {
+        interestType: data.interest_type,
       }),
       ...(data.monthly_payment !== undefined && {
         monthlyPayment: data.monthly_payment,

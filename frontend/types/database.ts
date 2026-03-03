@@ -28,6 +28,8 @@ export type TransactionCategory =
 
 export type IncomeType = "salary" | "side_job" | "other";
 
+export type InterestType = "compound" | "simple";
+
 export type RecommendationPriority = "high" | "medium" | "low";
 
 // --- Row types ---
@@ -46,6 +48,7 @@ export type Debt = {
   lender: string | null;
   current_balance: number;
   interest_rate: number | null;
+  interest_type: InterestType | null;
   monthly_payment: number | null;
   due_day: number | null;
   debt_type: DebtType;
