@@ -12,7 +12,6 @@ import type {
   IncomeInsert,
   IncomeUpdate,
   MonthlyAnalysis,
-  SourceType,
 } from "./database";
 
 // --- Debts (lib/api/debts.ts) ---
@@ -58,7 +57,6 @@ export type UploadResult = {
   id: string;
   status: "pending" | "processing" | "completed" | "failed";
   file_type: "screenshot" | "csv";
-  source_type: SourceType;
 };
 
 export type ExtractedItem = {
@@ -73,7 +71,6 @@ export type ExtractedItem = {
 export type UploadAnalysisResult = {
   upload_id: string;
   file_type: "screenshot" | "csv";
-  source_type: SourceType;
   column_mapping_required: boolean;
   detected_columns: string[];
   extracted_items: ExtractedItem[];

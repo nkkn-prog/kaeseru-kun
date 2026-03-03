@@ -10,8 +10,6 @@ export type DebtType =
   | "credit_card"
   | "other";
 
-export type SourceType = "bank" | "credit_card" | "salary" | "other";
-
 export type ScreenshotStatus =
   | "pending"
   | "processing"
@@ -60,8 +58,8 @@ export type Debt = {
 export type Screenshot = {
   id: string;
   user_id: string;
+  debt_id: string | null;
   storage_path: string;
-  source_type: SourceType;
   status: ScreenshotStatus;
   processed_at: string | null;
   created_at: string;
