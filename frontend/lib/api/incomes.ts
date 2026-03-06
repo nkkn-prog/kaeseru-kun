@@ -26,9 +26,11 @@ function getMonthDateRange(yearMonth: string): { start: Date; end: Date } {
   const year = parseInt(yearStr, 10);
   const month = parseInt(monthStr, 10);
 
-  const start = new Date(year, month - 1, 1);
+  // income_date は new Date("YYYY-MM-DD") で UTC として保存されるため、
+  // フィルタも UTC で作成して一致させる
+  const start = new Date(Date.UTC(year, month - 1, 1));
   // 翌月の1日を設定（月末の翌日）
-  const end = new Date(year, month, 1);
+  const end = new Date(Date.UTC(year, month, 1));
 
   return { start, end };
 }
@@ -44,6 +46,9 @@ export async function getIncomes(
 ): Promise<Income[]> {
   const where: Prisma.IncomeWhereInput = { userId };
 
+  console.log("テスト");
+  console.log(yearMonth);
+  
   // yearMonth フィルタ
   if (yearMonth) {
     const { start, end } = getMonthDateRange(yearMonth);
@@ -59,6 +64,8 @@ export async function getIncomes(
       incomeDate: "desc",
     },
   });
+
+  console.log(rows);
 
   return rows.map(toIncome);
 }

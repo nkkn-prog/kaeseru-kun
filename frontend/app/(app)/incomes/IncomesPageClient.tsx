@@ -15,7 +15,6 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { deleteIncomeAction } from "@/app/actions/incomes";
 import { IncomeFormModal } from "./IncomeFormModal";
 import type { Income, IncomeType } from "@/types/database";
 
@@ -84,11 +83,26 @@ export function IncomesPageClient({
   function handleDelete() {
     if (!deleteTargetId) return;
     startTransition(async () => {
-      const result = await deleteIncomeAction(deleteTargetId);
-      if (result.error) {
+      try {
+        const res = await fetch(`/api/incomes/${deleteTargetId}`, {
+          method: "DELETE",
+        });
+
+        if (!res.ok) {
+          const result = await res.json();
+          notifications.show({
+            title: "削除エラー",
+            message: result.error ?? "削除に失敗しました",
+            color: "red",
+          });
+          return;
+        }
+      } catch (e: unknown) {
+        const message =
+          e instanceof Error ? e.message : "削除に失敗しました";
         notifications.show({
           title: "削除エラー",
-          message: result.error,
+          message,
           color: "red",
         });
         return;

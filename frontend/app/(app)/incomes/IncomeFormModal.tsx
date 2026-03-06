@@ -14,10 +14,6 @@ import {
 import { DateInput } from "@mantine/dates";
 import { notifications } from "@mantine/notifications";
 import "dayjs/locale/ja";
-import {
-  createIncomeAction,
-  updateIncomeAction,
-} from "@/app/actions/incomes";
 import type { Income, IncomeType } from "@/types/database";
 
 // --- 定数 ---
@@ -98,22 +94,28 @@ export function IncomeFormModal({
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.set("amount", String(amount));
-      formData.set("income_type", incomeType);
-      formData.set("income_date", incomeDate);
-      if (description.trim()) {
-        formData.set("description", description.trim());
-      }
+      const payload = {
+        amount: Number(amount),
+        income_type: incomeType,
+        income_date: incomeDate,
+        description: description.trim() || null,
+      };
 
-      const result = isEdit
-        ? await updateIncomeAction(income.id, formData)
-        : await createIncomeAction(formData);
+      const url = isEdit ? `/api/incomes/${income.id}` : "/api/incomes";
+      const method = isEdit ? "PUT" : "POST";
 
-      if (result.error) {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
         notifications.show({
           title: isEdit ? "更新エラー" : "登録エラー",
-          message: result.error,
+          message: result.error ?? "保存に失敗しました",
           color: "red",
         });
         return;
